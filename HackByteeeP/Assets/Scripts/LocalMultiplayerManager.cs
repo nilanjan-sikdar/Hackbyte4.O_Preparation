@@ -23,18 +23,18 @@ public class LocalMultiplayerManager : MonoBehaviour
         // --- PLAYER 1 JOIN LOGIC (Space Key) ---
         if (!player1Joined && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
-            JoinPlayer(0, "KeyboardLeft", player1Spawn.position);
+            JoinPlayer(0, "Player1Scheme", player1Spawn.position);
             player1Joined = true;
-            //Debug.Log("Player 1 Joined! (WASD)");
+            Debug.Log("Player 1 Joined! (WASD)");
         }
 
         // --- PLAYER 2 JOIN LOGIC (Enter Key) ---
         // Note: numpadEnterKey and enterKey are separate in the New Input System
         if (!player2Joined && (Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.numpadEnterKey.wasPressedThisFrame))
         {
-            JoinPlayer(1, "KeyboardRight", player2Spawn.position);
+            JoinPlayer(1, "Player2Scheme", player2Spawn.position);
             player2Joined = true;
-            //Debug.Log("Player 2 Joined! (Arrows)");
+            Debug.Log("Player 2 Joined! (Arrows)");
         }
     }
 
