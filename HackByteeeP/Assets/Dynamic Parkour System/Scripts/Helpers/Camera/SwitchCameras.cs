@@ -61,8 +61,9 @@ namespace Climbing
         {
             if (curCam != CameraType.Freelook)
             {
-                Slide.Priority = 0;
-                FreeLook.Priority = 1;
+                if (Slide != null) Slide.Priority = 0;
+                if (FreeLook != null) FreeLook.Priority = 1;
+                curCam = CameraType.Freelook;
             }
         }
 
@@ -71,8 +72,9 @@ namespace Climbing
         {
             if (curCam != CameraType.Slide)
             {
-                FreeLook.Priority = 0;
-                Slide.Priority = 1;
+                if (FreeLook != null) FreeLook.Priority = 0;
+                if (Slide != null) Slide.Priority = 1;
+                curCam = CameraType.Slide;
             }
         }
     }

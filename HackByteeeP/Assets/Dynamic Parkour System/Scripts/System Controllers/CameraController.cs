@@ -50,6 +50,8 @@ namespace Climbing
 
         void Update()
         {
+            if (cameraOffset == null) return; // --- LOCAL MULTIPLAYER FIX ---
+
             //Lerps Camera Position to the new offset
             if (anim)
             {
@@ -66,6 +68,8 @@ namespace Climbing
         /// </summary>
         public void newOffset(bool offset)
         {
+            if (cameraOffset == null) return; // --- LOCAL MULTIPLAYER FIX ---
+
             if (offset)
                 _target = _offset;
             else

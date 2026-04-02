@@ -46,7 +46,10 @@ namespace Climbing
         {
             controller = GetComponent<ThirdPersonController>();
             animator = GetComponent<Animator>();
-            switchCameras = Camera.main.GetComponent<SwitchCameras>();
+            
+            // --- LOCAL MULTIPLAYER FIX ---
+            // Instead of Camera.main, look for a camera in our own children
+            switchCameras = GetComponentInChildren<SwitchCameras>();
         }
 
         void Update()

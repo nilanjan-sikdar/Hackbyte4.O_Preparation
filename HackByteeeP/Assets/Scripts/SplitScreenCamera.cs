@@ -6,10 +6,10 @@ public class SplitScreenCamera : MonoBehaviour
 {
     [Header("Camera Positioning")]
     [Tooltip("How far above and behind the player the camera should sit")]
-    public Vector3 positionOffset = new Vector3(0f, 5f, -7f); // Optimized for parkour
+    public Vector3 positionOffset = new Vector3(0f, 2.2f, -3.5f); // Brought closer (was 5f, -7f)
 
     [Tooltip("The angle the camera looks down at the player")]
-    public Vector3 rotationOffset = new Vector3(20f, 0f, 0f);
+    public Vector3 rotationOffset = new Vector3(15f, 0f, 0f); // Slightly shallower angle for lower height
 
     private Camera cam;
     private int index;

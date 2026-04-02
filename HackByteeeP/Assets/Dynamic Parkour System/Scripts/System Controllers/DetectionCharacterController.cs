@@ -47,6 +47,22 @@ namespace Climbing
         [SerializeField] private float FindLedgeNumRays = 7;
         [SerializeField] private float DropLedgeNumRays = 8;
 
+        private void Start()
+        {
+            // --- LOCAL MULTIPLAYER FAILSAFE ---
+            // If layers are not set in the inspector (bits == 0), auto-assign them
+            if (ledgeLayer.value == 0)
+            {
+                ledgeLayer = 1 << LayerMask.NameToLayer("Ledge");
+                Debug.Log($"[Multiplayer Failsafe] Ledge Layer auto-assigned to {ledgeLayer.value}");
+            }
+            if (climbLayer.value == 0)
+            {
+                climbLayer = 1 << LayerMask.NameToLayer("Wall");
+                Debug.Log($"[Multiplayer Failsafe] Climb/Wall Layer auto-assigned to {climbLayer.value}");
+            }
+        }
+
         public bool FindLedgeCollision(out RaycastHit hit)
         {
             Vector3 rayOrigin = transform.TransformDirection(OriginLedgeRay) + transform.position;
@@ -125,6 +141,10 @@ namespace Climbing
                 {
                     Debug.DrawLine(hit.point, hit.point + hit.normal, Color.cyan);
                 }
+
+                // If it's a pole, we are more lenient with the normal check
+                if (hit.transform.CompareTag("Pole"))
+                    return true;
 
                 if (hit.normal == hit.transform.forward || hit.normal == -hit.transform.forward)
                     return true;

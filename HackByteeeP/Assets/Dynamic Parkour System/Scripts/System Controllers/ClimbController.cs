@@ -129,6 +129,9 @@ namespace Climbing
                 Gizmos.DrawSphere(currentPoint.transform.position, 0.1f);
             }
         }
+        private float transitionSafetyTimer = 0f;
+        private const float MAX_TRANSITION_TIME = 2.0f;
+
         public void onAnimatorIK(int layerIndex)
         {
             //Reset IK Weight Position to default if not on Ledge
@@ -140,6 +143,10 @@ namespace Climbing
                 characterAnimation.animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0);
                 return;
             }
+
+            // --- MOVED FROM IKSOLVER TO PREVENT UNITY ERRORS ---
+            if (leftFootPosition == Vector3.zero) characterAnimation.animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 0);
+            if (rightFootPosition == Vector3.zero) characterAnimation.animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 0);
 
             //IK Position of Feet and Hands
             characterAnimation.animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1);
@@ -269,18 +276,34 @@ namespace Climbing
                 }
             }
 
-            //Controls Climbing Transitions
-            if (toLedge)
+        //Controls Climbing Transitions
+        if (toLedge)
+        {
+            transitionSafetyTimer += Time.deltaTime;
+            
+            // --- PANIC RESET: If we've been trying to reach a ledge for too long, just give up and reset ---
+            if (transitionSafetyTimer > MAX_TRANSITION_TIME)
             {
-                bool matchingTarget = false;
-                bool matchRotation = true;
+                Debug.LogWarning("[Climbing] Transition timed out. Forcing character reset.");
+                toLedge = false;
+                onLedge = false;
+                active = false;
+                transitionSafetyTimer = 0f;
+                characterController.EnableController();
+                characterController.isJumping = false;
+                return false;
+            }
 
-                //Idle To Ledge
-                if (characterAnimation.animState.IsName("Idle To Braced Hang") ||
-                    characterAnimation.animState.IsName("Idle To Freehang"))
-                {
-                    matchingTarget = true;
-                    rotTime = 0;
+            bool matchingTarget = false;
+            bool matchRotation = true;
+
+            //Idle To Ledge
+            if (characterAnimation.animState.IsName("Idle To Braced Hang") ||
+                characterAnimation.animState.IsName("Idle To Freehang") ||
+                characterAnimation.animator.IsInTransition(0)) // Also allow during transitions
+            {
+                matchingTarget = true;
+                rotTime = 0;
 
                     if (wallFound) //Braced
                         characterAnimation.SetMatchTarget(AvatarTarget.LeftHand, target, targetRot, targetRot * BracedHangOffset, startTime, 0.56f);
@@ -329,6 +352,8 @@ namespace Climbing
                 //Move Player and Rotate to Target Point
                 if (matchingTarget)
                 {
+                    transitionSafetyTimer += Time.deltaTime;
+
                     if (matchRotation)
                     {
                         if (characterAnimation.animState.normalizedTime >= startTime && rotTime <= 1.0f)
@@ -338,16 +363,18 @@ namespace Climbing
                         }
                     }
 
-                    //If MatchTarget animation ends, reset default values
-                    if (characterAnimation.animator.IsInTransition(0)) 
+                    //If MatchTarget animation ends, or we've timed out, reset default values
+                    if (characterAnimation.animator.IsInTransition(0) || transitionSafetyTimer > MAX_TRANSITION_TIME) 
                     {
+                        if (transitionSafetyTimer > MAX_TRANSITION_TIME)
+                        {
+                            Debug.LogWarning("[Climbing] Transition timed out. Forcing controller recovery.");
+                        }
+
                         onLedge = true;
                         toLedge = false;
                         jumping = false;
-                        leftHandPosition = characterAnimation.animator.GetBoneTransform(HumanBodyBones.LeftHand).position;
-                        rightHandPosition = characterAnimation.animator.GetBoneTransform(HumanBodyBones.RightHand).position;
-                        leftFootPosition = characterAnimation.animator.GetBoneTransform(HumanBodyBones.LeftFoot).position;
-                        rightFootPosition = characterAnimation.animator.GetBoneTransform(HumanBodyBones.RightFoot).position;
+                        transitionSafetyTimer = 0f;
 
                         //Enable controller if climbing State Ends
                         if (curClimbState == ClimbState.None)
@@ -397,27 +424,26 @@ namespace Climbing
 
             characterAnimation.HangMovement(direction.x, (int)curClimbState); //Move on Ledge Animations
 
-            //Only allow to jump to another ledge if is on Hanging Movement
-            if ((characterController.characterInput.jump || characterController.characterInput.drop) && characterAnimation.animState.IsName("Hanging Movement"))
-            {
-                bool drop = false;
-                if (characterController.characterInput.jump)
-                {
-                    drop = false;
-                }
-                if (characterController.characterInput.drop)
-                {
-                    drop = true;
-                }
+            // --- LOCAL MULTIPLAYER FIX: MORE LENIENT JUMP/DROP DETECTION ---
+            // Allow jumping if we are on a ledge, even if the animation state name doesn't match perfectly
+            bool isHanging = characterAnimation.animState.IsName("Hanging Movement") || 
+                            characterAnimation.animState.IsName("Idle To Braced Hang") || 
+                            characterAnimation.animState.IsName("Idle To Freehang");
 
+            if ((characterController.characterInput.jump || characterController.characterInput.drop) && (onLedge || isHanging))
+            {
+                bool drop = characterController.characterInput.drop;
+                
                 //Check if can climb on surface
                 bool climbing = false;
-                if (characterController.characterInput.movement.y > 0.8f && characterController.characterInput.movement.x < 0.3 && characterController.characterInput.movement.x > -0.3 && onLedge)
+                if (characterController.characterInput.movement.y > 0.8f && Mathf.Abs(characterController.characterInput.movement.x) < 0.3f && onLedge)
                     climbing = ClimbFromLedge();
 
                 if (wallFound && !climbing)
+                {
+                    Debug.Log("[Climbing] Attempting JumpToLedge...");
                     JumpToLedge(characterController.characterInput.movement.x, characterController.characterInput.movement.y, drop);
-
+                }
             }
         }
 
@@ -623,17 +649,9 @@ namespace Climbing
             {
                 leftFootPosition = hit3.point + hit3.normal * 0.15f;
             }
-            else
-            {
-                characterAnimation.animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 0);
-            }
             if (characterController.characterDetection.ThrowFootRayToLedge(origin4, Vector3.forward, IKFootRayLength, out hit4))
             {
                 rightFootPosition = hit4.point + hit4.normal * 0.15f;
-            }
-            else
-            {
-                characterAnimation.animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 0);
             }
         }
 

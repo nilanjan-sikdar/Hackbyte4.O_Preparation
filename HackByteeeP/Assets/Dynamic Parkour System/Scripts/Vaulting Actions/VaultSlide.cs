@@ -67,16 +67,29 @@ namespace Climbing
                         if (hit2.collider)
                         {
                             controller.characterAnimation.animator.CrossFade("Running Slide", 0.05f);
-                            dis = 4 / Vector3.Distance(startPos, targetPos);
-                            controller.characterAnimation.animator.SetFloat("AnimSpeed", dis);
-                            controller.characterAnimation.switchCameras.SlideCam();
-
+                            
                             startPos = controller.transform.position;
                             startRot = controller.transform.rotation;
                             targetPos = hit2.point;
+
+                            float distance = Vector3.Distance(startPos, targetPos);
+                            dis = (distance > 0.1f) ? (4 / distance) : 1f; // Prevent division by zero
+
+                            controller.characterAnimation.animator.SetFloat("AnimSpeed", dis);
+                            if (controller.characterAnimation.switchCameras != null)
+                                controller.characterAnimation.switchCameras.SlideCam();
+
                             targetRot = Quaternion.LookRotation(targetPos - startPos);
                             vaultTime = startDelay;
-                            animLength = clip.length + startDelay;
+                            
+                            if (clip != null)
+                                animLength = clip.length + startDelay;
+                            else
+                            {
+                                Debug.LogWarning("VaultSlide: AnimationClip is missing from Action config!");
+                                animLength = 1.0f; // Default length to avoid further errors
+                            }
+
                             controller.DisableController();
 
                             return true;
@@ -93,17 +106,36 @@ namespace Climbing
         /// </summary>
         public override bool Update()
         {
+            if (controller == null) return false;
+
             bool ret = false;
             if (controller.isVaulting)
             {
+                // Safety: Ensure we have the animation controller and a valid length
+                if (animator == null || animLength <= 0)
+                {
+                    controller.isVaulting = false;
+                    controller.EnableController();
+                    return false;
+                }
+
                 float actualSpeed = Time.deltaTime / animLength;
                 vaultTime += actualSpeed * (animator.animState.speed + dis);
 
                 if (vaultTime > 1)
                 {
-                    controller.characterAnimation.animator.SetFloat("AnimSpeed",1);
-                    controller.characterAnimation.switchCameras.FreeLookCam();
+                    // Robust null checking before calling animator or camera methods
+                    if (controller.characterAnimation != null)
+                    {
+                        if (controller.characterAnimation.animator != null)
+                            controller.characterAnimation.animator.SetFloat("AnimSpeed", 1);
+
+                        if (controller.characterAnimation.switchCameras != null)
+                            controller.characterAnimation.switchCameras.FreeLookCam();
+                    }
+
                     controller.EnableController();
+                    controller.isVaulting = false;
                 }
                 else
                 {
