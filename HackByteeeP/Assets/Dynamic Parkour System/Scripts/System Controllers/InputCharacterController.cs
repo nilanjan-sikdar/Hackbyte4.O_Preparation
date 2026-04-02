@@ -6,12 +6,12 @@ namespace Climbing
     [RequireComponent(typeof(PlayerInput))]
     public class InputCharacterController : MonoBehaviour
     {
-        [Header("Input Action Names (Must match your Asset exactly)")]
-        [Tooltip("Example: Type 'Move1' for Player 1, and 'Move2' for Player 2")]
-        public string moveActionName = "Move1";
-        public string jumpActionName = "Jump1";
-        public string dropActionName = "Drop1";
-        public string runActionName = "Run1";
+        [Header("Input Action Names")]
+        [Tooltip("The names of the actions in your Input Action Asset.")]
+        public string moveActionName = "Move";
+        public string jumpActionName = "Jump";
+        public string dropActionName = "Drop";
+        public string runActionName = "Run";
 
         [HideInInspector] public Vector2 movement;
         [HideInInspector] public bool run;
@@ -43,10 +43,7 @@ namespace Climbing
             runAction = playerInput.actions.FindAction(runActionName);
 
             // Print helpful warnings if a name is misspelled in the Inspector
-            if (moveAction == null) Debug.LogError($"[Input Error] Cannot find action named '{moveActionName}'.");
-            if (jumpAction == null) Debug.LogWarning($"[Input Warning] Cannot find action named '{jumpActionName}'.");
-            if (dropAction == null) Debug.LogWarning($"[Input Warning] Cannot find action named '{dropActionName}'.");
-            if (runAction == null) Debug.LogWarning($"[Input Warning] Cannot find action named '{runActionName}'.");
+            if (moveAction == null) Debug.LogError($"[Input Error] Cannot find action named '{moveActionName}'. Make sure it exists in your Input Action Asset.");
         }
 
         private void Update()

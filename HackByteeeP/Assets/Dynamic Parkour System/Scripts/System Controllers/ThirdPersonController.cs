@@ -76,8 +76,26 @@ namespace Climbing
             characterDetection = GetComponent<DetectionCharacterController>();
             vaultingController = GetComponent<VaultingController>();
 
+            // --- LOCAL MULTIPLAYER FIX ---
+            // If cameras aren't assigned, look for a Camera component in children
+            if (mainCamera == null || freeCamera == null)
+            {
+                Camera childCam = GetComponentInChildren<Camera>();
+                if (childCam != null)
+                {
+                    mainCamera = childCam.transform;
+                    if (freeCamera == null) freeCamera = childCam.transform; 
+                }
+                else
+                {
+                    Debug.LogWarning($"[Multiplayer Warning] No camera found for {gameObject.name}. Movement might be erratic.");
+                }
+            }
+
             if (cameraController == null)
-                Debug.LogError("Attach the Camera Controller located in the Free Look Camera");
+            {
+                cameraController = GetComponentInChildren<CameraController>();
+            }
         }
 
         private void Start()

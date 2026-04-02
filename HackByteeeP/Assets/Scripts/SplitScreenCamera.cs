@@ -6,10 +6,10 @@ public class SplitScreenCamera : MonoBehaviour
 {
     [Header("Camera Positioning")]
     [Tooltip("How far above and behind the player the camera should sit")]
-    public Vector3 positionOffset = new Vector3(0f, 10f, -10f); // Adjust these in the Inspector!
+    public Vector3 positionOffset = new Vector3(0f, 5f, -7f); // Optimized for parkour
 
     [Tooltip("The angle the camera looks down at the player")]
-    public Vector3 rotationOffset = new Vector3(45f, 0f, 0f);
+    public Vector3 rotationOffset = new Vector3(20f, 0f, 0f);
 
     private Camera cam;
     private int index;
@@ -21,11 +21,18 @@ public class SplitScreenCamera : MonoBehaviour
 
         // Grab the player index from the parent object
         PlayerInput playerInput = GetComponentInParent<PlayerInput>();
-        index = playerInput.playerIndex;
-        cam.depth = index;
+        if (playerInput != null)
+        {
+            index = playerInput.playerIndex;
+            playerTransform = playerInput.transform;
+        }
+        else
+        {
+            Debug.LogError("SplitScreenCamera: No PlayerInput found in parent! Make sure the camera is a child of the Player Prefab.");
+            return;
+        }
 
-        // Save a reference to the parent (the player capsule)
-        playerTransform = playerInput.transform;
+        cam.depth = index;
 
         // --- THE AUDIO LISTENER FIX ---
         // If this camera does NOT belong to Player 1 (index 0), destroy its ears.
@@ -70,24 +77,18 @@ public class SplitScreenCamera : MonoBehaviour
     {
         if (cam == null) cam = GetComponent<Camera>();
 
-        if (totalPlayers == 1)
+        if (totalPlayers <= 1)
         {
             cam.rect = new Rect(0, 0, 1, 1);
         }
         else if (totalPlayers == 2)
         {
+            // Split screen vertically (left/right)
             cam.rect = new Rect(index == 0 ? 0 : 0.5f, 0, 0.5f, 1);
-        }
-        else if (totalPlayers == 3)
-        {
-            cam.rect = new Rect(
-                index == 0 ? 0 : (index == 1 ? 0.5f : 0),
-                index < 2 ? 0.5f : 0,
-                index == 2 ? 0.5f : 1,
-                0.5f);
         }
         else
         {
+            // Grid for 3+ players
             cam.rect = new Rect((index % 2) * 0.5f, (index < 2) ? 0.5f : 0f, 0.5f, 0.5f);
         }
     }
